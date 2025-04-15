@@ -2,30 +2,37 @@
 
 echo "=== Running Git Hook: pre-commit ==="
 
+# Check if any Python files are staged
 FILES=$(git diff --cached --name-only | grep '\.py$')
 
 if [ "$FILES" != "" ]; then
     echo "🛡️ Python files staged. Running Bandit..."
 
-    # Default fallback (Linux/Mac)
-    BANDIT="./.venv/bin/bandit"
-    # If on Windows Git Bash, switch to Windows path
+    # Set Bandit path based on platform
+    BANDIT="./.venv/bin/bandit"  # Default (Linux/macOS)
+
+    # Windows Git Bash path
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
         BANDIT="./.venv/Scripts/bandit.exe"
     fi
 
+    # Check if Bandit exists
     if [ ! -f "$BANDIT" ]; then
-        echo "❌ Bandit not found in .venv. Please run 'pip install bandit' in .venv"
+        echo "❌ Bandit not found in .venv. Please run 'pip install bandit' inside the virtual environment."
         exit 1
     fi
 
-    $BANDIT -r . -f csv -o bandit_report.csv --exclude .venv
+    # Run Bandit and exclude .venv
+    echo "📂 Running Bandit scan with exclusion: .venv"
+    "$BANDIT" -r . -f csv -o bandit_report.csv --exclude .venv
 
+    # Verify report creation
     if [ -f bandit_report.csv ]; then
         echo "✅ Bandit scan complete. Report saved to bandit_report.csv"
     else
-        echo "❌ Bandit report not created."
+        echo "❌ Bandit report not created. Check permissions or paths."
+        exit 1
     fi
 else
-    echo "⚠️ No Python files staged. Skipping Bandit."
+    echo "⚠️ No Python files staged. Skipping Bandit scan."
 fi
