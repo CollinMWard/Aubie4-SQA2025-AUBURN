@@ -1,0 +1,17 @@
+Collin:
+-   created the github and worked on writing a script for auto running bandit within a conda enviorment.
+-   created the bandit.yaml file to exclude certain directories from being scanned
+-   modified the environment.yml file to set up the conda environment for the project
+-   created the README file and added team member information
+-   created the githooks folder and added the pre-commit hook to run bandit before each commit
+Maci:
+
+
+
+Madie:
+
+
+
+Hyunjun:
+
+
