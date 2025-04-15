@@ -1,0 +1,8 @@
+# bandit.yaml
+
+exclude_dirs:
+  - .venv
+  - venv
+  - env
+  - __pycache__
+  - site-packages
