@@ -1,13 +1,33 @@
 #!/bin/bash
 
-# Get staged Python files
-FILES=$(git diff --cached --name-only | grep '\.py$')
+echo "=== Running Git Hook: pre-commit ==="
+
+# Detect staged .py files
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$')
 
 if [ "$FILES" != "" ]; then
-    echo "🛡️ Bandit scan running on project..."
+    echo "🛡️  Python files staged. Running Bandit scan..."
+    
+    # Use full path to avoid PATH issues (adjust path if needed)
+    BANDIT_PATH=$(which bandit)
 
-    # Run Bandit on the entire repo and save output as CSV
+    echo "Bandit found at: $BANDIT_PATH"
+
+    if [ "$BANDIT_PATH" = "" ]; then
+        echo "❌ Bandit not found. Is it in your PATH?"
+        exit 1
+    fi
+
+    # Run Bandit on the entire repo
     bandit -r . -f csv -o bandit_report.csv
 
-    echo "✅ Bandit scan complete. Results saved to bandit_report.csv"
+    # Check if file was created
+    if [ -f bandit_report.csv ]; then
+        echo "✅ bandit_report.csv successfully created in project root"
+    else
+        echo "❌ bandit_report.csv not created. Something went wrong."
+        exit 1
+    fi
+else
+    echo "No Python files staged. Skipping Bandit scan."
 fi
