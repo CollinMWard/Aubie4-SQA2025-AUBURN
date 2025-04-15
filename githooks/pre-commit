@@ -2,25 +2,58 @@
 
 echo "=== Running Git Hook: pre-commit ==="
 
-# Only proceed if Python files are staged
 FILES=$(git diff --cached --name-only | grep '\.py$')
 
-if [ "$FILES" != "" ]; then
-    echo "🛡️ Python files staged. Running Bandit..."
+if [ "$FILES" == "" ]; then
+    echo "⚠️ No Python files staged. Skipping Bandit scan."
+    exit 0
+fi
 
-    # Activate the KUBESEC env (must exist for each user)
-    conda activate KUBESEC
+echo "🛡️ Python files staged. Attempting to run Bandit..."
 
-    # Run Bandit scan
-    bandit -r . -f csv -o bandit_report.csv -c bandit.yaml
-    
+# Path to save detected Conda activation path
+CONDAPATHFILE=".conda_hook_path"
 
-    if [ -f bandit_report.csv ]; then
-        echo "✅ Bandit scan complete. Report saved to bandit_report.csv"
-    else
-        echo "❌ Bandit report not created."
+# Auto-detect Conda activation script
+if [ ! -f "$CONDAPATHFILE" ]; then
+    echo "🔍 Detecting Conda install..."
+
+    # Try dynamic detection
+    CONDA_BASE=$(conda info --base 2>/dev/null)
+
+    # Fallback for common Windows install path
+    if [ -z "$CONDA_BASE" ]; then
+        CONDA_BASE="/c/Users/$USERNAME/anaconda3"
+    fi
+
+    CONDA_SH="$CONDA_BASE/etc/profile.d/conda.sh"
+
+    if [ ! -f "$CONDA_SH" ]; then
+        echo "❌ Cannot find conda.sh at $CONDA_SH"
+        echo "   Please ensure Conda is installed and available to Git Bash."
         exit 1
     fi
+
+    echo "$CONDA_SH" > "$CONDAPATHFILE"
+    echo "✅ Conda activation path saved to $CONDAPATHFILE"
 else
-    echo "⚠️ No Python files staged. Skipping Bandit scan."
+    CONDA_SH=$(cat "$CONDAPATHFILE")
+fi
+
+# Activate Conda and run Bandit
+source "$CONDA_SH"
+conda activate KUBESEC
+
+if ! command -v bandit &> /dev/null; then
+    echo "❌ Bandit not found in KUBESEC environment. Run: pip install bandit"
+    exit 1
+fi
+
+bandit -r . -f csv -o bandit_report.csv -c bandit.yaml
+
+if [ -f bandit_report.csv ]; then
+    echo "✅ Bandit scan complete. Report saved to bandit_report.csv"
+else
+    echo "❌ Bandit report not created."
+    exit 1
 fi
