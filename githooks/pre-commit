@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Get staged Python files
+FILES=$(git diff --cached --name-only | grep '\.py$')
+
+if [ "$FILES" != "" ]; then
+    echo "🛡️ Bandit scan running on project..."
+
+    # Run Bandit on the entire repo and save output as CSV
+    bandit -r . -f csv -o bandit_report.csv
+
+    echo "✅ Bandit scan complete. Results saved to bandit_report.csv"
+fi
