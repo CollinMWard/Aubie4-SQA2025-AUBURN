@@ -2,20 +2,23 @@
 
 echo "=== Running Git Hook: pre-commit ==="
 
-# Check if any Python files are staged
+# Only proceed if Python files are staged
 FILES=$(git diff --cached --name-only | grep '\.py$')
 
 if [ "$FILES" != "" ]; then
     echo "🛡️ Python files staged. Running Bandit..."
 
-    # Run Bandit using bandit.yaml config
-    bandit -r . -f csv -o bandit_report.csv -c bandit.yaml
+    # Activate the KUBESEC env (must exist for each user)
+    conda activate KUBESEC
 
-    # Verify report creation
+    # Run Bandit scan
+    bandit -r . -f csv -o bandit_report.csv -c bandit.yaml
+    
+
     if [ -f bandit_report.csv ]; then
         echo "✅ Bandit scan complete. Report saved to bandit_report.csv"
     else
-        echo "❌ Bandit report not created. Check Bandit or permissions."
+        echo "❌ Bandit report not created."
         exit 1
     fi
 else
