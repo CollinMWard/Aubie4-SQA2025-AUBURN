@@ -3,3 +3,7 @@ Collin Ward (cmw0147@auburn.edu, collinward2003@gmail.com)
 Maci Hadley (MNH0036@auburn.edu, Maci.hadley0724@gmail.com)
 Madie Champion (mbc0072@auburn.edu, madisonc00@gmail.com)
 Hyunjun Chae (Hzc0133@auburn.edu)
+
+Run this command to use the hooks in the githooks folder:
+git config core.hooksPath githooks
+# This will set the hooks path to the githooks folder in the root of the repository.

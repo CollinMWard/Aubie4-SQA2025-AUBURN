@@ -8,29 +8,14 @@ FILES=$(git diff --cached --name-only | grep '\.py$')
 if [ "$FILES" != "" ]; then
     echo "🛡️ Python files staged. Running Bandit..."
 
-    # Default Bandit path (Linux/macOS)
-    BANDIT="./.venv/bin/bandit"
-
-    # Windows Git Bash path
-    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
-        BANDIT="./.venv/Scripts/bandit.exe"
-    fi
-
-    # Check if Bandit exists
-    if [ ! -f "$BANDIT" ]; then
-        echo "❌ Bandit not found in .venv. Please run 'pip install bandit' inside the virtual environment."
-        exit 1
-    fi
-
-    # Run Bandit using YAML config for exclusions
-    echo "📂 Running Bandit with bandit.yaml config..."
-    "$BANDIT" -r . -f csv -o bandit_report.csv -c bandit.yaml
+    # Run Bandit using bandit.yaml config
+    bandit -r . -f csv -o bandit_report.csv -c bandit.yaml
 
     # Verify report creation
     if [ -f bandit_report.csv ]; then
         echo "✅ Bandit scan complete. Report saved to bandit_report.csv"
     else
-        echo "❌ Bandit report not created. Check permissions or config."
+        echo "❌ Bandit report not created. Check Bandit or permissions."
         exit 1
     fi
 else
