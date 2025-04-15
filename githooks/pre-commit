@@ -8,8 +8,8 @@ FILES=$(git diff --cached --name-only | grep '\.py$')
 if [ "$FILES" != "" ]; then
     echo "🛡️ Python files staged. Running Bandit..."
 
-    # Set Bandit path based on platform
-    BANDIT="./.venv/bin/bandit"  # Default (Linux/macOS)
+    # Default path (Linux/macOS)
+    BANDIT="./.venv/bin/bandit"
 
     # Windows Git Bash path
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
@@ -22,9 +22,17 @@ if [ "$FILES" != "" ]; then
         exit 1
     fi
 
-    # Run Bandit and exclude .venv
-    echo "📂 Running Bandit scan with exclusion: .venv"
-    "$BANDIT" -r . -f csv -o bandit_report.csv --exclude .venv
+    # Resolve absolute path to .venv for clean exclusion
+    EXCLUDE_PATH="$(pwd)/.venv"
+
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+        EXCLUDE_PATH=$(cygpath -u "$EXCLUDE_PATH")
+    fi
+
+    echo "📂 Excluding path from Bandit scan: $EXCLUDE_PATH"
+
+    # Run Bandit with exclusion
+    "$BANDIT" -r . -f csv -o bandit_report.csv --exclude "$EXCLUDE_PATH"
 
     # Verify report creation
     if [ -f bandit_report.csv ]; then
