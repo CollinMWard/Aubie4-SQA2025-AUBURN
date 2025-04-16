@@ -77,10 +77,13 @@ def isValidUserName(uName):
     valid = True
     if (isinstance( uName , str)  ): 
         if( any(z_ in uName for z_ in constants.FORBIDDEN_USER_NAMES )   ): 
+            logging.warning(f"Username '{uName}' contains forbidden information.")
             valid = False   
         else: 
+            logging.info(f"Username '{uName}' is valid.")
             valid = True    
     else: 
+        logging.error(f"Invalid username type. Expected string, recieved {type(uName).__name__}")
         valid = False   
     return valid
 
@@ -88,10 +91,13 @@ def isValidPasswordName(pName):
     valid = True
     if (isinstance( pName , str)  ): 
         if( any(z_ in pName for z_ in constants.FORBIDDEN_PASS_NAMES) )  : 
+            logging.warning(f"Password '{pName}' contains forbidden information.")
             valid = False  
         else: 
+            logging.info(f"Password '{pName}' is valid.")
             valid = True    
     else: 
+        logging.error(f"Invalid password type. Expected string, recieved {type(pName).__name__}")
         valid = False               
     return valid
 
@@ -99,10 +105,13 @@ def isValidKey(keyName):
     valid = False 
     if ( isinstance( keyName, str )  ):
         if( any(z_ in keyName for z_ in constants.LEGIT_KEY_NAMES ) ) : 
+            logging.info(f"Key '{keyName}' is valid.")
             valid = True   
         else: 
+            logging.warning(f"Key '{keyName}' does not match a value in the list of legitimate key names.")
             valid = False     
     else: 
+        logging.error(f"Invalid key type. Expected string, recieved {type(keyName).__name__}")
         valid = False                      
     return valid    
 
