@@ -4,6 +4,7 @@ May 03, 2021
 Code to detect security anti-patterns 
 '''
 import logging
+import logging
 import parser 
 import constants 
 import graphtaint 
@@ -87,11 +88,14 @@ def isValidUserName(uName):
     if (isinstance( uName , str)  ): 
         if( any(z_ in uName for z_ in constants.FORBIDDEN_USER_NAMES )   ): 
             logging.warning(f"Username '{uName}' contains forbidden information.")
+            logging.warning(f"Username '{uName}' contains forbidden information.")
             valid = False   
         else: 
             logging.info(f"Username '{uName}' is valid.")
+            logging.info(f"Username '{uName}' is valid.")
             valid = True    
     else: 
+        logging.error(f"Invalid username type. Expected string, recieved {type(uName).__name__}")
         logging.error(f"Invalid username type. Expected string, recieved {type(uName).__name__}")
         valid = False   
     return valid
@@ -101,11 +105,14 @@ def isValidPasswordName(pName):
     if (isinstance( pName , str)  ): 
         if( any(z_ in pName for z_ in constants.FORBIDDEN_PASS_NAMES) )  : 
             logging.warning(f"Password '{pName}' contains forbidden information.")
+            logging.warning(f"Password '{pName}' contains forbidden information.")
             valid = False  
         else: 
             logging.info(f"Password '{pName}' is valid.")
+            logging.info(f"Password '{pName}' is valid.")
             valid = True    
     else: 
+        logging.error(f"Invalid password type. Expected string, recieved {type(pName).__name__}")
         logging.error(f"Invalid password type. Expected string, recieved {type(pName).__name__}")
         valid = False               
     return valid
@@ -115,11 +122,14 @@ def isValidKey(keyName):
     if ( isinstance( keyName, str )  ):
         if( any(z_ in keyName for z_ in constants.LEGIT_KEY_NAMES ) ) : 
             logging.info(f"Key '{keyName}' is valid.")
+            logging.info(f"Key '{keyName}' is valid.")
             valid = True   
         else: 
             logging.warning(f"Key '{keyName}' does not match a value in the list of legitimate key names.")
+            logging.warning(f"Key '{keyName}' does not match a value in the list of legitimate key names.")
             valid = False     
     else: 
+        logging.error(f"Invalid key type. Expected string, recieved {type(keyName).__name__}")
         logging.error(f"Invalid key type. Expected string, recieved {type(keyName).__name__}")
         valid = False                      
     return valid    
@@ -182,6 +192,7 @@ def scanKeys(k_, val_lis):
 
 def scanForSecrets(yaml_d): 
     logging.info("[START] scanForSecrets")
+    logging.info("[START] scanForSecrets")
     key_lis, dic2ret_secret   = [], {} 
     parser.getKeyRecursively( yaml_d, key_lis )
     '''
@@ -192,6 +203,7 @@ def scanForSecrets(yaml_d):
         key_     = key_data[0]
         value_list = [] 
         parser.getValsFromKey( yaml_d, key_ , value_list )
+        logging.info(f"Total amount of keys extracted: {len(key_lis)}")
         logging.info(f"Total amount of keys extracted: {len(key_lis)}")
         unameList = scanUserName( key_, value_list  )
         # print(unameList)
@@ -204,16 +216,23 @@ def scanForSecrets(yaml_d):
                 f"Secrets found in key '{key_}': "
                 f"{len(unameList)} usernames, {len(passwList)} passwords, {len(keyList)} tokens"
             )
+            logging.info(
+                f"Secrets found in key '{key_}': "
+                f"{len(unameList)} usernames, {len(passwList)} passwords, {len(keyList)} tokens"
+            )
     # print(dic2ret_secret)
+    logging.info(f"[END] scanForSecrets | Total secret-containing keys: {len(dic2ret_secret)}")
     logging.info(f"[END] scanForSecrets | Total secret-containing keys: {len(dic2ret_secret)}")
     return dic2ret_secret
 
 
 def scanForOverPrivileges(script_path):
     logging.info(f"[START] scanForOverPrivileges | File: {script_path}")
+    logging.info(f"[START] scanForOverPrivileges | File: {script_path}")
     key_count , privi_dict_return = 0, {} 
     kind_values = [] 
     checkVal = parser.checkIfValidK8SYaml( script_path )
+    logging.info(f"YAML validation result: {checkVal}")
     logging.info(f"YAML validation result: {checkVal}")
     if(checkVal): 
         dict_as_list = parser.loadMultiYAML( script_path )
@@ -229,11 +248,13 @@ def scanForOverPrivileges(script_path):
         '''
         just_keys = [x_[0] for x_ in key_lis] 
         logging.info(f"Total keys extracted: {len(just_keys)}")
+        logging.info(f"Total keys extracted: {len(just_keys)}")
         # print('JUST KEYS ALL -----------------------------------------------------')
         # print(just_keys)
         # just_keys = list( np.unique( just_keys )  )
         if ( constants.KIND_KEY_NAME in just_keys ):
             parser.getValsFromKey( yaml_dict, constants.KIND_KEY_NAME, kind_values )
+            logging.info(f"KIND values: {kind_values}")
             logging.info(f"KIND values: {kind_values}")
             
         '''
@@ -244,6 +265,7 @@ def scanForOverPrivileges(script_path):
             privilege_values = []
             parser.getValsFromKey( yaml_dict, constants.PRIVI_KW , privilege_values )
             logging.info(f"Privilege values found: {privilege_values}")
+            logging.info(f"Privilege values found: {privilege_values}")
             # print(privilege_values) 
             for value_ in privilege_values:
                     if value_ == True: 
@@ -253,12 +275,14 @@ def scanForOverPrivileges(script_path):
                             key_count += 1
                             privi_dict_return[key_count] = value_, key_lis_holder 
                             logging.info(f"[PRIVILEGE DETECTED] Count: {key_count} | Keys: {key_lis_holder}")
+                            logging.info(f"[PRIVILEGE DETECTED] Count: {key_count} | Keys: {key_lis_holder}")
                             line_number = parser.show_line_for_paths(script_path, constants.PRIVI_KW)
                             for line in line_number:
                                 result= Result(rule_id='SLIKUBE_11',rule_index= 10, level='error',attachments = [] ,message=Message(text=" Privileged securityContext"))
                                 location = Location(physical_location=PhysicalLocation(artifact_location=ArtifactLocation(uri=script_path),region = Region(start_line =line)))
                                 result.locations = [location]
                                 run.results.append(result)
+    logging.info(f"[END] scanForOverPrivileges | Total privilege issues: {key_count}")
     logging.info(f"[END] scanForOverPrivileges | Total privilege issues: {key_count}")
     return privi_dict_return 
 
