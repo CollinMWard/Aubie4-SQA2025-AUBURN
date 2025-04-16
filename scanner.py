@@ -3,6 +3,7 @@ Akond Rahman
 May 03, 2021 
 Code to detect security anti-patterns 
 '''
+import logging
 import parser 
 import constants 
 import graphtaint 
@@ -12,6 +13,10 @@ import numpy as np
 import json
 from sarif_om import *
 from jschema_to_python.to_json import to_json
+import typer #need this?
+
+
+
 
 '''Global SarifLog Object definition and Rule definition for SLI-KUBE. Rule IDs are ordered by the sequence as it appears in the TOSEM paper'''
 
@@ -60,6 +65,13 @@ weird_yaml = []
 helm_chart = []
 k8s_yaml =[]
 
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='Project-LOGGER.log',
+    level=logging.INFO,
+    force=True  # Ensure it overrides any previous configuration
+)
+
 def getYAMLFiles(path_to_dir):
     valid_  = [] 
     for root_, dirs, files_ in os.walk( path_to_dir ):
@@ -74,10 +86,13 @@ def isValidUserName(uName):
     valid = True
     if (isinstance( uName , str)  ): 
         if( any(z_ in uName for z_ in constants.FORBIDDEN_USER_NAMES )   ): 
+            logging.warning(f"Username '{uName}' contains forbidden information.")
             valid = False   
         else: 
+            logging.info(f"Username '{uName}' is valid.")
             valid = True    
     else: 
+        logging.error(f"Invalid username type. Expected string, recieved {type(uName).__name__}")
         valid = False   
     return valid
 
@@ -85,10 +100,13 @@ def isValidPasswordName(pName):
     valid = True
     if (isinstance( pName , str)  ): 
         if( any(z_ in pName for z_ in constants.FORBIDDEN_PASS_NAMES) )  : 
+            logging.warning(f"Password '{pName}' contains forbidden information.")
             valid = False  
         else: 
+            logging.info(f"Password '{pName}' is valid.")
             valid = True    
     else: 
+        logging.error(f"Invalid password type. Expected string, recieved {type(pName).__name__}")
         valid = False               
     return valid
 
@@ -96,10 +114,13 @@ def isValidKey(keyName):
     valid = False 
     if ( isinstance( keyName, str )  ):
         if( any(z_ in keyName for z_ in constants.LEGIT_KEY_NAMES ) ) : 
+            logging.info(f"Key '{keyName}' is valid.")
             valid = True   
         else: 
+            logging.warning(f"Key '{keyName}' does not match a value in the list of legitimate key names.")
             valid = False     
     else: 
+        logging.error(f"Invalid key type. Expected string, recieved {type(keyName).__name__}")
         valid = False                      
     return valid    
 
@@ -159,8 +180,8 @@ def scanKeys(k_, val_lis):
                 hard_coded_keys.append( val_ )
     return hard_coded_keys    
 
-
 def scanForSecrets(yaml_d): 
+    logging.info("[START] scanForSecrets")
     key_lis, dic2ret_secret   = [], {} 
     parser.getKeyRecursively( yaml_d, key_lis )
     '''
@@ -171,6 +192,7 @@ def scanForSecrets(yaml_d):
         key_     = key_data[0]
         value_list = [] 
         parser.getValsFromKey( yaml_d, key_ , value_list )
+        logging.info(f"Total amount of keys extracted: {len(key_lis)}")
         unameList = scanUserName( key_, value_list  )
         # print(unameList)
         passwList = scanPasswords( key_, value_list  )
@@ -178,14 +200,21 @@ def scanForSecrets(yaml_d):
         # print(keyList)
         if( len(unameList) > 0  )  or ( len(passwList) > 0  ) or ( len(keyList) > 0  ) :
             dic2ret_secret[key_] =  ( unameList, passwList, keyList ) 
+            logging.info(
+                f"Secrets found in key '{key_}': "
+                f"{len(unameList)} usernames, {len(passwList)} passwords, {len(keyList)} tokens"
+            )
     # print(dic2ret_secret)
+    logging.info(f"[END] scanForSecrets | Total secret-containing keys: {len(dic2ret_secret)}")
     return dic2ret_secret
 
 
 def scanForOverPrivileges(script_path):
+    logging.info(f"[START] scanForOverPrivileges | File: {script_path}")
     key_count , privi_dict_return = 0, {} 
     kind_values = [] 
     checkVal = parser.checkIfValidK8SYaml( script_path )
+    logging.info(f"YAML validation result: {checkVal}")
     if(checkVal): 
         dict_as_list = parser.loadMultiYAML( script_path )
         yaml_dict    = parser.getSingleDict4MultiDocs( dict_as_list )
@@ -199,11 +228,13 @@ def scanForOverPrivileges(script_path):
         as the output is a list of tuples so, `[(k1, v1), (k2, v2), (k3, v3)]`
         '''
         just_keys = [x_[0] for x_ in key_lis] 
+        logging.info(f"Total keys extracted: {len(just_keys)}")
         # print('JUST KEYS ALL -----------------------------------------------------')
         # print(just_keys)
         # just_keys = list( np.unique( just_keys )  )
         if ( constants.KIND_KEY_NAME in just_keys ):
             parser.getValsFromKey( yaml_dict, constants.KIND_KEY_NAME, kind_values )
+            logging.info(f"KIND values: {kind_values}")
             
         '''
         For the time being Kind:DeamonSet is not a legit sink because they do not directly provision deplyoments 
@@ -212,6 +243,7 @@ def scanForOverPrivileges(script_path):
         if ( constants.PRIVI_KW in just_keys ) and ( constants.DEAMON_KW not in kind_values  ) :
             privilege_values = []
             parser.getValsFromKey( yaml_dict, constants.PRIVI_KW , privilege_values )
+            logging.info(f"Privilege values found: {privilege_values}")
             # print(privilege_values) 
             for value_ in privilege_values:
                     if value_ == True: 
@@ -220,12 +252,14 @@ def scanForOverPrivileges(script_path):
                         if(constants.CONTAINER_KW in key_lis_holder) and (constants.SECU_CONT_KW in key_lis_holder) and (constants.PRIVI_KW in key_lis_holder):
                             key_count += 1
                             privi_dict_return[key_count] = value_, key_lis_holder 
+                            logging.info(f"[PRIVILEGE DETECTED] Count: {key_count} | Keys: {key_lis_holder}")
                             line_number = parser.show_line_for_paths(script_path, constants.PRIVI_KW)
                             for line in line_number:
                                 result= Result(rule_id='SLIKUBE_11',rule_index= 10, level='error',attachments = [] ,message=Message(text=" Privileged securityContext"))
                                 location = Location(physical_location=PhysicalLocation(artifact_location=ArtifactLocation(uri=script_path),region = Region(start_line =line)))
                                 result.locations = [location]
                                 run.results.append(result)
+    logging.info(f"[END] scanForOverPrivileges | Total privilege issues: {key_count}")
     return privi_dict_return 
 
 def getItemFromSecret( dict_sec, pos ): 
@@ -631,113 +665,64 @@ def scanDockerSock(path_script ):
                 dic[ cnt ] = []
     return dic  
 
-def runScanner(dir2scan):
-    all_content   = [] 
+def runScanner(dir2scan): 
+    all_content = [] 
     all_yml_files = getYAMLFiles(dir2scan)
-    val_cnt       = 0 
+    val_cnt = 0 
+    sarif_json = None  # Initialize sarif_json to avoid UnboundLocalError
+
     for yml_ in all_yml_files:
         '''
         Need to filter out `.github/workflows.yml files` first 
         '''
-        if(parser.checkIfWeirdYAML ( yml_  )  == False): 
-            print ("\n\n--------------- FILE --------------\n\t-->",yml_)
-            if( ( parser.checkIfValidK8SYaml( yml_ ) ) or (  parser.checkIfValidHelm( yml_ ) ) ) and parser.checkParseError( yml_) :
-                # print (" \n\n--------------- FILE RUNNING NOW---------------")
-                # print (yml_)
-                # print("---------------############################### ------\n\n\n")
-                helm_flag             = parser.checkIfValidHelm(yml_)
-                k8s_flag              = parser.checkIfValidK8SYaml(yml_)
-                if (helm_flag):
-                    helm_chart.append(yml_)
-                    print("HELM Chart")
+        try:
+            # Attempt to call checkIfWeirdYAML
+            if parser.checkIfWeirdYAML(yml_) == False:
+                print(f"\n\n--------------- FILE --------------\n\t-->", yml_)
+        except AttributeError as e:
+            logging.error(f"Error: Method 'checkIfWeirdYAML' not found for file {yml_}: {e}")
+            continue
 
-                if (k8s_flag):
-                    k8s_yaml.append(yml_)
-                    print("Kubernetes YAML")
-                
-                val_cnt = val_cnt + 1 
-                print(constants.ANLYZING_KW + yml_ + constants.COUNT_PRINT_KW + yml_ +str(val_cnt) )
-               
-                print("get valid taint secrets")
-                within_secret_, templ_secret_, valid_taint_secr  = scanSingleManifest( yml_ )
-
-
-                print("get privileged security contexts")
-                valid_taint_privi  = scanForOverPrivileges( yml_ )
-               
-                print("get insecure HTTP")            
-                http_dict             = scanForHTTP( yml_ )
-               
-                print("get missing security context") 
-                absentSecuContextDict = scanForMissingSecurityContext( yml_ )
-               
-                print("get use of default namespace") 
-                defaultNameSpaceDict  = scanForDefaultNamespace( yml_ )
-               
-                print("get missing resource limit")
-                absentResourceDict    = scanForResourceLimits( yml_ )
-
-                print("get absent rolling update count") 
-                rollingUpdateDict     = scanForRollingUpdates( yml_ )
-
-                print("get absent network policy count") 
-                absentNetPolicyDic    = scanForMissingNetworkPolicy( yml_ )
-
-                print(" get hostPIDs where True is assigned ")
-                pid_dic               = scanForTruePID( yml_ )
-
-                print("get hostIPCs where True is assigned") 
-                ipc_dic               = scanForTrueIPC( yml_ )
-                
-                print("scan for docker sock paths: /var.run/docker.sock") 
-                dockersock_dic        = scanDockerSock( yml_ )
-
-                print("scan for hostNetwork where True is assigned ")
-                host_net_dic          = scanForHostNetwork( yml_ )
-                
-                print("scan for CAP SYS") 
-                cap_sys_dic           = scanForCAPSYS( yml_ )
-                
-                print("scan for Host Aliases") 
-                host_alias_dic        = scanForHostAliases( yml_ )
-                
-                print("scan for allowPrivilegeEscalation") 
-                allow_privi_dic       = scanForAllowPrivileges( yml_ )
-                
-                print("scan for unconfied seccomp ")
-                unconfied_seccomp_dict= scanForUnconfinedSeccomp( yml_ )
-                
-                print(" scan for cap sys module ")
-                cap_module_dic        = scanForCAPMODULE( yml_ )
-                # need the flags to differentiate legitimate HELM and K8S flags 
-                
-                print (" \n\n---------------END FILE RUNNING--------------")
-                print(constants.SIMPLE_DASH_CHAR )
-                
-                #print(yml_)
-                
-                                      
-                # sarif_json = to_json(sarif_log)
-                # print(sarif_json)
-                # #Write the JSON string to a file
-                # sarif_file = yml_.split('\\')[-1].split('.')[0]+'.sarif'
-                # with open(sarif_file, "w") as f:
-                #     f.write(sarif_json)
-
-                all_content.append( ( dir2scan, yml_, within_secret_, templ_secret_, valid_taint_secr, valid_taint_privi, http_dict, absentSecuContextDict, defaultNameSpaceDict, absentResourceDict, rollingUpdateDict, absentNetPolicyDic, pid_dic, ipc_dic, dockersock_dic, host_net_dic, cap_sys_dic, host_alias_dic, allow_privi_dic, unconfied_seccomp_dict, cap_module_dic, k8s_flag, helm_flag ) )
+        try:
+            # Re-check for weird YAML
+            if parser.checkIfWeirdYAML(yml_) == False:
+                print("\n\n--------------- FILE --------------\n\t-->", yml_)
+                try:
+                    # Attempt to call checkParseError
+                    if (parser.checkIfValidK8SYaml(yml_) or parser.checkIfValidHelm(yml_)) and parser.checkParseError(yml_):
+                        helm_flag = parser.checkIfValidHelm(yml_)
+                        k8s_flag = parser.checkIfValidK8SYaml(yml_)
+                        if helm_flag:
+                            helm_chart.append(yml_)
+                            print("HELM Chart")
+                        if k8s_flag:
+                            k8s_yaml.append(yml_)
+                            print("Kubernetes YAML")
+                        val_cnt += 1
+                        print(constants.ANLYZING_KW + yml_ + constants.COUNT_PRINT_KW + yml_ + str(val_cnt))
+                        print("get valid taint secrets")
+                        within_secret_, templ_secret_, valid_taint_secr = scanSingleManifest(yml_)
+                except AttributeError as e:
+                    logging.error(f"Error: Method 'checkParseError' not found for file {yml_}: {e}")
+                    continue
             else:
-                print("Invalid YAML --> ",yml_)
+                print("Invalid YAML --> ", yml_)
                 invalid_yaml.append(yml_)
+        except AttributeError as e:
+            logging.error(f"Error: Method 'checkIfWeirdYAML' not found for file {yml_}: {e}")
+            continue
         else:
-            print(" Weird YAML --> ",yml_)
+            print("Weird YAML --> ", yml_)
             weird_yaml.append(yml_)
 
+    try:
+        # Attempt to convert sarif_log to JSON
         sarif_json = to_json(sarif_log)
-        #print(sarif_json)       
-
+    except Exception as e:
+        logging.error(f"Error converting SARIF log to JSON: {e}")
+        sarif_json = "{}"  # Set sarif_json to an empty JSON object as a fallback
 
     return all_content, sarif_json
-
 
 def scanForHostNetwork(path_script ):
     dic, lis   = {}, []
@@ -789,7 +774,7 @@ def scanForCAPSYS(path_script ):
                 cnt += 1
                 capsys_key = parser.keyMiner(yaml_di, constants.CAPSYS_ADMIN_STRING)
                 #print(capsys_key)
-                # ['spec.YAML.DOC.2', 'template', 'spec', 'containers', '0', 'securityContext', 'capabilities', 'add', '1', 'CAP_SYS_ADMIN'] --> [-3]
+                #['spec.YAML.DOC.2', 'template', 'spec', 'containers', '0', 'securityContext', 'capabilities', 'add', '1', 'CAP_SYS_ADMIN'] --> [-3]
                 # Line number of the line where the key was found for CAPSYS_ADMIN  to provide  SARIF output
                 line_number = parser.show_line_for_paths(path_script,capsys_key[-3])
                 for line in line_number:

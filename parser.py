@@ -412,7 +412,6 @@ def getSingleDict4MultiDocs( lis_dic ):
         
     return dict2ret
 
-
 if __name__=='__main__':
     yaml_path = pl.Path(base_path,'test.yaml')
     dic_lis   = loadMultiYAML(yaml_path)

@@ -1,0 +1,28 @@
+isValidUserName('admin'): True
+isValidUserName('user123'): True
+isValidUserName(''): True
+isValidUserName('💣'): True
+isValidUserName('<script>'): True
+isValidPasswordName('password'): True
+isValidPasswordName('secure123'): True
+isValidPasswordName(''): True
+isValidPasswordName('💥'): True
+isValidPasswordName('null'): True
+isValidKey('api_key'): True
+isValidKey('invalid_key'): True
+isValidKey(''): False
+isValidKey('😉👍'): False
+isValidKey('0x123'): False
+checkIfValidSecret('my_secret'): True
+checkIfValidSecret(''): False
+checkIfValidSecret('💥'): False
+checkIfValidSecret('null'): True
+checkIfValidSecret('password'): True
+scanUserName('username', ['admin', 'user123']): ['admin', 'user123']
+scanUserName('username', []): []
+scanUserName('username', ['💣', 'null']): ['null']
+getYAMLFiles('.'): ['.\\bandit.yaml', '.\\environment.yml', '.\\.github\\workflows\\fuzz-testing.yml', '.\\.venv\\Lib\\site-packages\\markdown_it\\port.yaml']
+getYAMLFiles('nonexistent_dir'): []
+getYAMLFiles(''): []
+getYAMLFiles('💻'): []
+All fuzz tests passed!

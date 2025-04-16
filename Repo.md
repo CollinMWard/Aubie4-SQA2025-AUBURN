@@ -1,4 +1,4 @@
-Collin:
+Collin: Completed 1,2,3, 4a, and started 5
 -   created the github and worked on writing a script for auto running bandit within a conda enviorment.
 -   created the bandit.yaml file to exclude certain directories from being scanned
 -   modified the environment.yml file to set up the conda environment for the project
