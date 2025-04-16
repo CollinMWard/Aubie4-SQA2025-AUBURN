@@ -3,6 +3,7 @@ Akond Rahman
 May 03, 2021 
 Code to detect security anti-patterns 
 '''
+import logging
 import parser 
 import constants 
 import graphtaint 
@@ -12,6 +13,8 @@ import numpy as np
 import json
 from sarif_om import *
 from jschema_to_python.to_json import to_json
+from myLogger import giveMeLoggingObject
+logging = giveMeLoggingObject()
 
 '''Global SarifLog Object definition and Rule definition for SLI-KUBE. Rule IDs are ordered by the sequence as it appears in the TOSEM paper'''
 
@@ -159,8 +162,8 @@ def scanKeys(k_, val_lis):
                 hard_coded_keys.append( val_ )
     return hard_coded_keys    
 
-
 def scanForSecrets(yaml_d): 
+    logging.info("[START] scanForSecrets")
     key_lis, dic2ret_secret   = [], {} 
     parser.getKeyRecursively( yaml_d, key_lis )
     '''
@@ -171,6 +174,7 @@ def scanForSecrets(yaml_d):
         key_     = key_data[0]
         value_list = [] 
         parser.getValsFromKey( yaml_d, key_ , value_list )
+        logging.info(f"Total amount of keys extracted: {len(key_lis)}")
         unameList = scanUserName( key_, value_list  )
         # print(unameList)
         passwList = scanPasswords( key_, value_list  )
@@ -178,14 +182,21 @@ def scanForSecrets(yaml_d):
         # print(keyList)
         if( len(unameList) > 0  )  or ( len(passwList) > 0  ) or ( len(keyList) > 0  ) :
             dic2ret_secret[key_] =  ( unameList, passwList, keyList ) 
+            logging.info(
+                f"Secrets found in key '{key_}': "
+                f"{len(unameList)} usernames, {len(passwList)} passwords, {len(keyList)} tokens"
+            )
     # print(dic2ret_secret)
+    logging.info(f"[END] scanForSecrets | Total secret-containing keys: {len(dic2ret_secret)}")
     return dic2ret_secret
 
 
 def scanForOverPrivileges(script_path):
+    logging.info(f"[START] scanForOverPrivileges | File: {script_path}")
     key_count , privi_dict_return = 0, {} 
     kind_values = [] 
     checkVal = parser.checkIfValidK8SYaml( script_path )
+    logging.info(f"YAML validation result: {checkVal}")
     if(checkVal): 
         dict_as_list = parser.loadMultiYAML( script_path )
         yaml_dict    = parser.getSingleDict4MultiDocs( dict_as_list )
@@ -199,11 +210,13 @@ def scanForOverPrivileges(script_path):
         as the output is a list of tuples so, `[(k1, v1), (k2, v2), (k3, v3)]`
         '''
         just_keys = [x_[0] for x_ in key_lis] 
+        logging.info(f"Total keys extracted: {len(just_keys)}")
         # print('JUST KEYS ALL -----------------------------------------------------')
         # print(just_keys)
         # just_keys = list( np.unique( just_keys )  )
         if ( constants.KIND_KEY_NAME in just_keys ):
             parser.getValsFromKey( yaml_dict, constants.KIND_KEY_NAME, kind_values )
+            logging.info(f"KIND values: {kind_values}")
             
         '''
         For the time being Kind:DeamonSet is not a legit sink because they do not directly provision deplyoments 
@@ -212,6 +225,7 @@ def scanForOverPrivileges(script_path):
         if ( constants.PRIVI_KW in just_keys ) and ( constants.DEAMON_KW not in kind_values  ) :
             privilege_values = []
             parser.getValsFromKey( yaml_dict, constants.PRIVI_KW , privilege_values )
+            logging.info(f"Privilege values found: {privilege_values}")
             # print(privilege_values) 
             for value_ in privilege_values:
                     if value_ == True: 
@@ -220,12 +234,14 @@ def scanForOverPrivileges(script_path):
                         if(constants.CONTAINER_KW in key_lis_holder) and (constants.SECU_CONT_KW in key_lis_holder) and (constants.PRIVI_KW in key_lis_holder):
                             key_count += 1
                             privi_dict_return[key_count] = value_, key_lis_holder 
+                            logging.info(f"[PRIVILEGE DETECTED] Count: {key_count} | Keys: {key_lis_holder}")
                             line_number = parser.show_line_for_paths(script_path, constants.PRIVI_KW)
                             for line in line_number:
                                 result= Result(rule_id='SLIKUBE_11',rule_index= 10, level='error',attachments = [] ,message=Message(text=" Privileged securityContext"))
                                 location = Location(physical_location=PhysicalLocation(artifact_location=ArtifactLocation(uri=script_path),region = Region(start_line =line)))
                                 result.locations = [location]
                                 run.results.append(result)
+    logging.info(f"[END] scanForOverPrivileges | Total privilege issues: {key_count}")
     return privi_dict_return 
 
 def getItemFromSecret( dict_sec, pos ): 
