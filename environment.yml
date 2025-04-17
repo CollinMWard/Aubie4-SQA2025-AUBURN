@@ -12,3 +12,4 @@ dependencies:
   - bandit
   - hypothesis   
   - ruamel.yaml  
+  - "sarif-om"     
