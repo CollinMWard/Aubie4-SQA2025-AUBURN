@@ -9,7 +9,8 @@ Having a standardized enviorment makes for easier collaboration. Initially I wor
 Creating support files such as the yaml files makes for more consistent results. 
 
 Maci:
-
+- completed 1/2 of 4c, integrated logging into scanForSecrets and scanForOverPriviledges functions in scanner.py
+  Logging from scanForSecrets function provides users with the total secret-containing keys, while logging from scanForOverPriviledges function provides users with the total privilege issues.
 
 
 Madie:
