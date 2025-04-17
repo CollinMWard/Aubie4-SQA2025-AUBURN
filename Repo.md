@@ -22,5 +22,6 @@ Madie:
 
 
 Hyunjun:
-
+- I implemented fuzz.py to automatically test 6 functions from scanner.py: isValidUserName, isValidPasswordName, isValidKey, checkIfValidSecret, scanUserName, and
+  getYAMLFiles. A variety of test inputs (valid, invalid, empty, emoji, and special strings) were used to uncover possible bugs or input handling issues.
 
