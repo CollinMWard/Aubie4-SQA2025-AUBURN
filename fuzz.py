@@ -1,4 +1,3 @@
-from hypothesis import given, strategies as st
 from scanner import isValidUserName, isValidPasswordName, isValidKey, checkIfValidSecret, scanUserName, getYAMLFiles
 
 # Open a file to write the outputs with UTF-8 encoding
