@@ -14,6 +14,7 @@ Maci:
 
 Madie:
 - completed 1/2 of 4c, integrated logging into the username, password and key functions in scanner.py
+  Although already done in a previous workshop, adding logging info to such a large file was helpful in checking import bodies and methods.
 
 
 Hyunjun:
