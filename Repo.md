@@ -13,7 +13,7 @@ Maci:
 
 
 Madie:
-
+- completed 1/2 of 4c, integrated logging into the username, password and key functions in scanner.py
 
 
 Hyunjun:
