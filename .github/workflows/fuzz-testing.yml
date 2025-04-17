@@ -25,6 +25,9 @@ jobs:
     - name: Remove existing environment
       run: conda env remove -n KUBESEC || true
 
+    - name: Install ruamel.yaml explicitly
+      run: conda install -n KUBESEC ruamel.yaml -y
+
     - name: Verify environment
       run: conda list
 
