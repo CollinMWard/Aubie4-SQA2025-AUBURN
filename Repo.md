@@ -12,7 +12,8 @@ Creating support files such as the yaml files makes for more consistent results.
 Utilizing the instruction and enviorment files to create github actions provides for many new possibilities with automatic scripts within github. Getting the actions to work with the existing dependencies was difficult as some are windows only and took lots of debugging to identify.
 
 Maci:
-
+- completed 1/2 of 4c, integrated logging into scanForSecrets and scanForOverPriviledges functions in scanner.py
+  Logging from scanForSecrets function provides users with the total secret-containing keys, while logging from scanForOverPriviledges function provides users with the total privilege issues.
 
 
 Madie:
