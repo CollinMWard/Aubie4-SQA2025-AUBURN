@@ -1,26 +1,18 @@
 name: KUBESEC
 channels:
-  - conda-forge     # conda‑forge first gives you most of the Python ecosystem
+  - conda-forge
   - defaults
-channel_priority: strict
 
 dependencies:
-  # Core runtime
-  - python =3.11
-  - pip             # needed for the pip: section below
-
-  # Heavy, compiled, or conda‑forge‑only libs
-  - numpy
+  - python=3.11           
+  - pip                  
+  - numpy                
   - pandas
   - ruamel.yaml
   - sarif-om
   - jschema-to-python
-
-  # Unit‑test + tooling
   - pytest
   - hypothesis
   - bandit
-
-  # Anything else comes from pip ↓
-  - pip:
+  - pip:                
       - -r requirements.txt
