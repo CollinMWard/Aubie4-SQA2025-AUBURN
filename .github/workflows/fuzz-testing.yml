@@ -2,32 +2,33 @@ name: Fuzz Testing
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    defaults:            # 👈 keeps Conda activation alive
+      run:
+        shell: bash -l {0}
 
-    - name: Remove existing environment
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Remove old env
       run: conda env remove -n KUBESEC || true
 
     - name: Set up Miniconda
       uses: conda-incubator/setup-miniconda@v2
       with:
-        auto-update-conda: true
-        python-version: 3.11  # Match the Python version in environment.yml
         environment-file: environment.yml
         activate-environment: KUBESEC
-
+        python-version: 3.11
+        auto-update-conda: true
 
     - name: Verify environment
       run: conda list
 
     - name: Run fuzz tests
-      run: conda run -n KUBESEC python fuzz.py
+      run: python fuzz.py
