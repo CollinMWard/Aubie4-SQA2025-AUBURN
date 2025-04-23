@@ -18,6 +18,8 @@ def test_isValidPasswordName():
     print("isValidPasswordName(''):", isValidPasswordName(""), file=output_file)                   # Empty string
     print("isValidPasswordName('💥'):", isValidPasswordName("💥"), file=output_file)               # Emoji
     print("isValidPasswordName('null'):", isValidPasswordName("null"), file=output_file)           # Special string
+    print("isValidPasswordName('line1\\nline2'):", isValidPasswordName("line1\nline2"), file=output_file)  # Multiple line password
+
 
 # Test isValidKey
 def test_isValidKey():
@@ -26,6 +28,7 @@ def test_isValidKey():
     print("isValidKey(''):", isValidKey(""), file=output_file)                          # Empty string
     print("isValidKey('😉👍'):", isValidKey("😉👍"), file=output_file)                  # Emoji combo
     print("isValidKey('0x123'):", isValidKey("0x123"), file=output_file)                # Hex-like string
+    print("isValidKey('line1\\nline2'):", isValidKey("line1\nline2"), file=output_file)  # Multiple line key
 
 # Test checkIfValidSecret
 def test_checkIfValidSecret():
