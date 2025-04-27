@@ -1,3 +1,10 @@
+# =============================================================
+# Fuzz Testing Script for COMP 5710 - Software Quality Assurance
+# Task 4b: Implemented and enhanced by Hyunjun Chae
+# Description: This script automates fuzz testing for input validation
+# functions in scanner.py, covering edge cases and robustness checks.
+# =============================================================
+
 from scanner import isValidUserName, isValidPasswordName, isValidKey, checkIfValidSecret, scanUserName, getYAMLFiles
 
 # Open a file to write the outputs with UTF-8 encoding
